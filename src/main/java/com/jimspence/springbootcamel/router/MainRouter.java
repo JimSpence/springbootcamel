@@ -2,11 +2,14 @@ package com.jimspence.springbootcamel.router;
 
 import com.jimspence.springbootcamel.model.EmployeeIn;
 import com.jimspence.springbootcamel.model.EmployeeOut;
+import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.jackson.JacksonDataFormat;
 import org.apache.camel.component.jackson.ListJacksonDataFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
 @Component("mainRouter")
@@ -58,7 +61,7 @@ public class MainRouter extends RouteBuilder {
 //
 //				.get("/mssqlstuff3").description("Post to Student Service Program")
 //				.responseMessage().code(200).message("All Students successfully returned").endResponseMessage()
-//				.to("direct:mssqlstuff3");
+//				.to("direct:mssqlstuff3");f9
 //
 //		from("direct:mssqlstuff3")
 //				.log(INFO, "*** beforeSetBoby ***")
@@ -69,13 +72,18 @@ public class MainRouter extends RouteBuilder {
 ////				.process("testProcessor")
 //				.process("jsonProcessor")
 //		;
+		onException(Exception.class)
+				.handled(true)
+				.setHeader(Exchange.HTTP_RESPONSE_CODE, constant(HttpStatus.BAD_REQUEST.value()))
+				.setBody(simple("${exception.message}"));
+
 
 		JacksonDataFormat format = new ListJacksonDataFormat(EmployeeIn.class);
 		JacksonDataFormat formatOut = new ListJacksonDataFormat(EmployeeOut.class);
 
 		rest("/").description("REST service")
-				.consumes("application/json")
-				.produces("application/json")
+				.consumes(MediaType.APPLICATION_JSON_VALUE)
+				.produces(MediaType.APPLICATION_JSON_VALUE)
 
 				.post("/incoming").description("Post to Spring Boot Camel Application")
 
@@ -88,8 +96,6 @@ public class MainRouter extends RouteBuilder {
 				.to("json-validator:employee-out.json")
 				.to("mock:endpoint")
 		;
-
-		from("file:jimin").to("file:jimout");
 
 	}
 
